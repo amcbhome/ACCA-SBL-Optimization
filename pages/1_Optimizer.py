@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import pandas as pd
 import pulp
 
@@ -87,7 +87,7 @@ for d in depots:
 
 # Capacity Constraints
 for s in stores:
-    prob += pulp.lpSum([vars[d][s] for d in depots]) <= store_capacity[s], f"Capacity_Constraint_{s}"
+    prob += pulp.lpSum([vars[d][s] for s in depots]) <= store_capacity[s], f"Capacity_Constraint_{s}"
 
 # Solve model using PuLP CBC Solver
 prob.solve(pulp.PULP_CBC_CMD(msg=False))
@@ -129,7 +129,7 @@ with col_left:
     df_results["Depot Supply"] = [supply[d] for d in depots]
     df_results["Unused Supply"] = df_results["Depot Supply"] - df_results["TVs Transported"]
 
-    # Add Total Received / Column Sum row (matches Excel Received row)
+    # Add Total Received / Column Sum row
     total_received_row = {
         "Store 1": df_results["Store 1"].sum(),
         "Store 2": df_results["Store 2"].sum(),
@@ -164,28 +164,15 @@ with col_right:
 
 st.divider()
 
-# --- SENSITIVITY & NETWORK SUMMARY ---
-st.subheader("Network Utilization & Capacity Analysis")
+# --- CONSTRAINT BINDING ANALYSIS ---
+st.subheader("Constraint Analysis")
 
-col_s1, col_s2 = st.columns(2)
-
-with col_s1:
-    st.markdown("### Depot Capacity Utilization")
-    for d in depots:
-        shipped = sum(pulp.value(vars[d][s]) or 0 for s in stores)
-        cap = supply[d]
-        pct = (shipped / cap * 100) if cap > 0 else 0
-        st.write(f"**{d}:** {int(shipped):,} / {cap:,} TVs ({pct:.1f}% utilized)")
-        st.progress(pct / 100)
-
-with col_s2:
-    st.markdown("### Decision Model Insights")
-    active_routes = sum(1 for d in depots for s in stores if (pulp.value(vars[d][s]) or 0) > 0)
-    avg_cost = (total_freight_cost / total_tvs_shipped) if total_tvs_shipped > 0 else 0.0
-    
-    st.info(
-        f"• **Delivery Rate:** Fixed at £5.00 per mile per TV.\n"
-        f"• **Total Delivered:** {int(total_tvs_shipped):,} TVs shipped out of {total_supply:,} available.\n"
-        f"• **Active Shipping Routes:** {active_routes} out of 9 possible routes utilized.\n"
-        f"• **Average Delivery Cost per TV:** £{avg_cost:.2f}"
-    )
+st.markdown(
+    """
+    **Non-Binding Constraint:** **Store 2 Capacity** is the only constraint in the network that is not fully binding. 
+    While all three supply depots operate at 100% capacity and both Store 1 and Store 3 take in their maximum allowed limit of 2,000 TVs each, 
+    Store 2 receives only **2,850 TVs** against its total storage limit of **3,000 TVs**. 
+    Because total available supply across all depots (6,850 TVs) is less than total retail capacity (7,000 TVs), 
+    the system leaves **150 TVs of slack capacity** in Store 2, as it is the surplus storage space remaining after distributing all available stock.
+    """
+)
