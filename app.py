@@ -119,57 +119,29 @@ if pulp.LpStatus[status] == "Optimal":
     schedule_df.loc["Capacity Limit"] = list(store_limits) + [sum(capacity.values()), "-", "-"]
     schedule_df.loc["Capacity Slack"] = list(store_slack) + [sum(capacity.values()) - total_received.sum(), "-", "-"]
 
-    # Display full matrix with embedded capacity/supply limits
-    st.dataframe(schedule_df, use_container_width=True)
+    # Function to highlight the non-zero slack cell (the 150 cell) in red
+    def highlight_slack(val):
+        if val == 150 or val == "150":
+            return "background-color: #ff4b4b; color: white; font-weight: bold;"
+        return ""
+
+    # Display styled table
+    st.dataframe(
+        schedule_df.style.applymap(highlight_slack), 
+        use_container_width=True
+    )
 
     st.divider()
 
-    # --- CONSTRAINT BINDING & CAPACITY CHECKLIST ---
-    st.subheader("📌 Constraint Binding & Capacity Checklist")
-
-    grid_cols = st.columns(3)
-
-    # Depot Cards
-    for idx, depot in enumerate(depots):
-        shipped = schedule_df.loc[depot, "Total Shipped"]
-        limit = supply[depot]
-        is_binding = (shipped == limit)
-        
-        with grid_cols[idx]:
-            if is_binding:
-                st.success(f"**{depot} (Supply)**\n\n🟢 **Fully Binding**\n\nShipped: {shipped:,} / {limit:,} units")
-            else:
-                st.error(f"**{depot} (Supply)**\n\n🔴 **Not Fully Binding**\n\nShipped: {shipped:,} / {limit:,} units")
-
-    # Store Cards
-    for idx, store in enumerate(stores):
-        received = schedule_df.loc["Total Received", store]
-        limit = capacity[store]
-        is_binding = (received == limit)
-        slack = limit - received
-        
-        with grid_cols[idx]:
-            if is_binding:
-                st.success(f"**{store} (Capacity)**\n\n🟢 **Fully Binding**\n\nReceived: {received:,} / {limit:,} units")
-            else:
-                st.error(f"**{store} (Capacity)**\n\n🔴 **Not Fully Binding**\n\nReceived: {received:,} / {limit:,} units ({slack:,} slack)")
-
-    st.divider()
-
-    # --- FOCUSED ANALYTICAL INSIGHT (RED CELL ONLY) ---
-    st.subheader("📊 Analytical Insight: Unused Network Capacity")
-    
-    s2_received = schedule_df.loc["Total Received", "Store 2"]
-    s2_cap_val = capacity["Store 2"]
-    s2_slack_val = s2_cap_val - s2_received
+    # --- QUALITATIVE ANALYTICAL INSIGHT ---
+    st.subheader("📊 Qualitative Insight: What the Red Cell Means")
 
     st.info(
-        f"Across the entire transportation network, **Store 2** is the sole **not fully binding** constraint (🔴 Red). "
-        f"While all three depots dispatch 100% of their supply and Stores 1 and 3 hit 100% of their maximum intake, "
-        f"Store 2 receives **{s2_received:,} units against its {s2_cap_val:,}-unit limit**.\n\n"
-        f"This leaves **{s2_slack_val:,} units of unallocated slack space**. Strategically, this red cell identifies "
-        f"Store 2 as the network's only operational safety valve—providing built-in flexibility to absorb unexpected demand "
-        f"spikes or hold promotional inventory without requiring extra warehouse investment."
+        "**Operational Buffer:** The highlighted red cell (**150 units of capacity slack at Store 2**) represents "
+        "the only non-binding point across the entire network[span_2](start_span)[span_2](end_span). Because all supply from every depot is fully utilized "
+        "and Stores 1 and 3 are filled to capacity, Store 2 acts as the system's sole operational cushion[span_3](start_span)[span_3](end_span). "
+        "This unallocated space allows the business to absorb regional demand spikes or house temporary promotional stock "
+        "without needing to expand warehouse capacity[span_4](start_span)[span_4](end_span)."
     )
 
 else:
