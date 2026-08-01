@@ -64,14 +64,6 @@ st.markdown(
     * **1. Decision Variables:** The actual choices the model needs to make—specifically, deciding how many TVs to ship along each of the 9 routes between the depots and stores.
     * **2. Objective Function:** The total cost formula the model works to minimize by adding up the costs across all routes (number of TVs shipped × route distance × £5 rate).
     * **3. Constraints:** The operational rules the solution must respect—ensuring 100% of the TVs leave the depots without overloading any store beyond its holding limit.
-
-    ---
-
-    ### **Key Analytical Insight: Constraint Binding & Slack**
-    Solving linear programs reveals critical operational insights beyond the minimized cost figure:
-
-    * **Fully Binding Constraints:** When a capacity or supply limit is met exactly (100% utilization), that constraint is **fully binding**, acting as an active bottleneck in the network.
-    * **Not Fully Binding Constraints (Slack):** When an optimal solution is reached without hitting a capacity limit, the unutilized capacity is **slack**. This slack identifies **unallocated resources** in the network—highlighting where future supply growth or demand surges can be absorbed without expanding facilities.
     """
 )
 
@@ -188,16 +180,9 @@ if pulp.LpStatus[status] == "Optimal":
 
     st.dataframe(styled_df, use_container_width=True)
 
-    st.divider()
-
-    # --- QUALITATIVE ANALYTICAL INSIGHT ---
-    st.subheader("📊 Analytical Insight")
-
-    st.info(
-        "**Unallocated Resource:** The highlighted cell (**150 units at Store 2**) represents an "
-        "**unallocated resource** resulting from a **not fully binding constraint** in the linear programming model. "
-        "While all depot supply is 100% dispatched and Stores 1 and 3 hit 100% capacity (fully binding), "
-        "Store 2 retains unutilized intake limit under the optimal distribution plan."
+    # Footnote note on non-binding constraint / unallocated capacity
+    st.caption(
+        "**Note:** The optimization model is not fully binding; there is unallocated storage space for 150 TVs at Store 2."
     )
 
 else:
