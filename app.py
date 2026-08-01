@@ -166,17 +166,28 @@ if pulp.LpStatus[status] == "Optimal":
     schedule_df.loc["Capacity Limit"] = list(store_limits) + [sum(capacity.values()), "-", "-"]
     schedule_df.loc["Capacity Slack"] = list(store_slack) + [sum(capacity.values()) - total_received.sum(), "-", "-"]
 
-    # Highlight function for the non-zero slack cell
-    def highlight_slack(val):
-        if val == 150 or val == "150":
-            return "background-color: #ff4b4b; color: white; font-weight: bold;"
-        return ""
+    # Styling function: Bolds delivery schedule quantities and highlights non-zero slack
+    def style_schedule_cells(df):
+        styles = pd.DataFrame('', index=df.index, columns=df.columns)
+        
+        # Bold non-zero delivery schedule values (Depots x Stores)
+        for depot in depots:
+            for store in stores:
+                val = df.loc[depot, store]
+                if isinstance(val, (int, float)) and val > 0:
+                    styles.loc[depot, store] = 'font-weight: bold;'
 
-    # Display styled table safely across pandas versions (.map vs .applymap)
-    try:
-        styled_df = schedule_df.style.map(highlight_slack)
-    except AttributeError:
-        styled_df = schedule_df.style.applymap(highlight_slack)
+        # Highlight capacity slack cell if present
+        for col in df.columns:
+            for idx in df.index:
+                val = df.loc[idx, col]
+                if val == 150 or val == "150":
+                    styles.loc[idx, col] = 'background-color: #ff4b4b; color: white; font-weight: bold;'
+
+        return styles
+
+    # Apply styles to DataFrame
+    styled_df = schedule_df.style.apply(style_schedule_cells, axis=None)
 
     st.dataframe(styled_df, use_container_width=True)
 
