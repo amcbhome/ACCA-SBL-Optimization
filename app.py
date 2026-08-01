@@ -24,34 +24,55 @@ st.subheader("📖 Problem Scenario & Optimization Logic")
 st.markdown(
     """
     ### **The Transportation Scenario**
-    The business operates a multi-depot distribution network shipping goods across multiple retail stores. 
-    Each depot holds a fixed supply of inventory, while each retail store has a maximum receiving capacity. 
-    Because distance and shipping routes vary across the network, every potential route incurs a different unit transportation cost. 
+    The company needs to distribute **televisions** from three regional depots to three retail stores. 
 
+    * **Depot Inventory:** Depot 1 has **2,500 TVs**, Depot 2 has **3,100 TVs**, and Depot 3 has **1,250 TVs** available for dispatch.
+    * **Store Holding Capacity:** Store 1 can hold **2,000 TVs**, Store 2 can hold **3,000 TVs**, and Store 3 can hold **2,000 TVs**.
+    * **Freight Cost Rate:** Shipping incurs a rate of **£5.00 per TV per mile**.
+
+    #### **Depot-to-Store Distance Matrix (Miles)**
+    """
+)
+
+# Define static distance matrix for display
+distances_display = pd.DataFrame(
+    [
+        [22, 33, 40],
+        [27, 30, 22],
+        [36, 20, 25]
+    ],
+    index=["Depot 1", "Depot 2", "Depot 3"],
+    columns=["Store 1", "Store 2", "Store 3"]
+)
+
+st.table(distances_display)
+
+st.markdown(
+    """
     ### **Model Architecture & Mechanics**
-    The goal of the linear program is to minimize total network transit costs through a structured mathematical formulation:
+    The linear program identifies the distribution schedule that minimizes total transit costs across the network:
 
-    * **Decision Variables:** The model evaluates every route between depots and stores to determine the exact number of units to ship across each individual pathway.
-    * **Objective Function:** Calculated as the sum of all route decisions multiplied by their respective distance and freight rates:
+    * **Decision Variables:** The model determines the exact number of TVs shipped along each route between depots and stores.
+    * **Objective Function:** Calculated as the sum of all route decisions multiplied by their route distance and the £5/TV/mile freight rate:
     """
 )
 
 # Mathematical formulation of the Objective Function
-st.latex(r"\text{Minimize Total Cost} = \sum_{i \in \text{Depots}} \sum_{j \in \text{Stores}} (\text{Units}_{i,j} \times \text{Distance}_{i,j} \times \text{Freight Rate})")
+st.latex(r"\text{Minimize Total Cost} = \sum_{i \in \text{Depots}} \sum_{j \in \text{Stores}} (\text{TVs}_{i,j} \times \text{Distance}_{i,j} \times £5.00)")
 
 st.markdown(
     """
-    * **Constraint Satisfaction:** The optimization engine evaluates combination schedules to identify the lowest possible cost while satisfying two strict conditions:
-      1. **Supply Constraints:** 100% of available inventory at each depot must be dispatched.
-      2. **Capacity Constraints:** Total deliveries arriving at any store cannot exceed its maximum physical capacity.
+    * **Constraint Satisfaction:** The optimization engine evaluates route combinations to achieve the lowest possible total cost while satisfying two conditions:
+      1. **Supply Constraints:** 100% of the TV inventory at each depot must be dispatched.
+      2. **Capacity Constraints:** The total number of TVs delivered to any store cannot exceed its physical holding capacity.
 
     ---
 
     ### **Key Analytical Insight: Constraint Binding & Slack**
-    Solving linear programs reveals critical qualitative operational insights beyond basic cost totals:
+    Solving linear programs reveals operational insights beyond basic total cost:
 
-    * **Fully Binding Constraints:** When a capacity or supply limit is met exactly (100% utilization), that constraint is **fully binding**, acting as a bottleneck in the network.
-    * **Not Fully Binding Constraints (Slack):** When an optimal solution is reached without hitting a capacity limit, the remaining room is **slack**. This highlighted slack identifies **unallocated resources** in the network—revealing where future supply growth or sudden demand surges can be absorbed without requiring facility expansion.
+    * **Fully Binding Constraints:** When a store's capacity or depot's supply limit is met exactly (100% utilization), that constraint is **fully binding** and acts as a bottleneck in the network.
+    * **Not Fully Binding Constraints (Slack):** When an optimal solution is reached without fully exhausting a capacity limit, the remaining room is **slack**. This highlighted slack identifies **unallocated resources** in the network—revealing where future supply growth or sudden demand surges can be absorbed without requiring facility expansion.
     """
 )
 
@@ -61,19 +82,19 @@ st.divider()
 st.sidebar.header("⚙️ Model Parameters")
 
 freight_rate = st.sidebar.number_input(
-    "Freight Rate (£ / unit / mile)", 
+    "Freight Rate (£ / TV / mile)", 
     min_value=0.1, 
     max_value=20.0, 
     value=5.0, 
     step=0.5
 )
 
-st.sidebar.subheader("Depot Supplies")
+st.sidebar.subheader("Depot Inventories (TVs)")
 d1_supply = st.sidebar.number_input("Depot 1 Supply", value=2500, step=100)
 d2_supply = st.sidebar.number_input("Depot 2 Supply", value=3100, step=100)
 d3_supply = st.sidebar.number_input("Depot 3 Supply", value=1250, step=100)
 
-st.sidebar.subheader("Store Capacities")
+st.sidebar.subheader("Store Holding Capacities (TVs)")
 s1_cap = st.sidebar.number_input("Store 1 Capacity", value=2000, step=100)
 s2_cap = st.sidebar.number_input("Store 2 Capacity", value=3000, step=100)
 s3_cap = st.sidebar.number_input("Store 3 Capacity", value=2000, step=100)
@@ -128,7 +149,7 @@ if pulp.LpStatus[status] == "Optimal":
     col1, col2, col3 = st.columns(3)
     col1.metric("Optimization Status", "Optimal Solution Found", delta_color="normal")
     col2.metric("Total Optimal Freight Cost", f"£{total_cost:,.2f}")
-    col3.metric("Total Units Dispatched", f"{sum(supply.values()):,} units")
+    col3.metric("Total TVs Dispatched", f"{sum(supply.values()):,} units")
 
     st.subheader("📋 Optimal Dispatch Schedule & Network Summary")
     
