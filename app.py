@@ -193,7 +193,7 @@ if pulp.LpStatus[status] == "Optimal":
 
     # Footnote note on non-binding constraint / unallocated capacity
     st.caption(
-        "**Note:** The optimization model is not fully binding; there is unallocated storage space for 150 TVs at Store 2."
+        "**Note:** The optimization model is not fully binding, resulting in unallocated storage space for 150 TVs at Store 2."
     )
 
 else:
