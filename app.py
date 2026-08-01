@@ -59,28 +59,11 @@ st.subheader("2. Solution")
 
 st.markdown(
     """
-    To find the optimal delivery schedule, the problem is formulated and solved using **Linear Programming**, structured into three core components:
+    To find the optimal delivery schedule, the problem is formulated and solved using **Linear Programming**, broken down into three clear parts:
 
-    ### **1. Decision Variables**
-    The quantities of TVs shipped along each specific route are defined as decision variables. For 3 depots ($i$) and 3 stores ($j$), there are 9 route variables:
-    $$\\text{TVs}_{i,j} \\ge 0 \\quad \\forall \\, i \\in \\{\\text{Depot 1, 2, 3}\\}, \\, j \\in \\{\\text{Store 1, 2, 3}\\}$$
-
-    ### **2. Objective Function**
-    The goal is to minimize total transportation cost across all 9 possible shipping routes:
-    """
-)
-
-st.latex(r"\text{Minimize Total Cost} = \sum_{i \in \text{Depots}} \sum_{j \in \text{Stores}} (\text{TVs}_{i,j} \times \text{Distance}_{i,j} \times £5.00)")
-
-st.markdown(
-    """
-    ### **3. Constraints**
-    The optimization engine searches the solution space for the lowest cost while satisfying two sets of linear boundaries:
-
-    * **Supply Constraints (Equality):** Every TV available at each depot must be dispatched.
-      $$\\sum_{j \\in \\text{Stores}} \\text{TVs}_{i,j} = \\text{Supply}_i \\quad \\forall \\, i \\in \\text{Depots}$$
-    * **Capacity Constraints (Inequality):** Total TVs received by any store cannot exceed its physical holding limit.
-      $$\\sum_{i \\in \\text{Depots}} \\text{TVs}_{i,j} \\le \\text{Capacity}_j \\quad \\forall \\, j \\in \\text{Stores}$$
+    * **1. Decision Variables:** The actual choices the model needs to make—specifically, deciding how many TVs to ship along each of the 9 routes between the depots and stores.
+    * **2. Objective Function:** The total cost formula the model works to minimize by adding up the costs across all routes (number of TVs shipped × route distance × £5 rate).
+    * **3. Constraints:** The operational rules the solution must respect—ensuring 100% of the TVs leave the depots without overloading any store beyond its holding limit.
 
     ---
 
