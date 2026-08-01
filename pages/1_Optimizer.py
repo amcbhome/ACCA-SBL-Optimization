@@ -71,23 +71,21 @@ total_supply = sum(supply.values())
 total_store_capacity = sum(store_capacity.values())
 
 # --- PULP MODEL FORMULATION ---
-# Create LP problem instance
 prob = pulp.LpProblem("TV_Distribution_Optimization", pulp.LpMaximize)
 
-# Decision Variables: Number of TVs shipped on route (d, s)
+# Decision Variables
 routes = [(d, s) for d in depots for s in stores]
 vars = pulp.LpVariable.dicts("Shipment", (depots, stores), lowBound=0, cat='Integer')
 
-# Objective Function: Maximize total throughput value while minimizing transportation cost
-# (1000 - cost) ensures maximum units are moved at minimum freight cost
+# Objective Function: Maximize throughput while minimizing freight cost
 UNIT_VALUE = 1000.0
 prob += pulp.lpSum([vars[d][s] * (UNIT_VALUE - unit_costs[d][s]) for (d, s) in routes]), "Total_Net_Objective"
 
-# Supply Constraints: Total shipped from depot <= Depot Supply
+# Supply Constraints
 for d in depots:
     prob += pulp.lpSum([vars[d][s] for s in stores]) <= supply[d], f"Supply_Constraint_{d}"
 
-# Capacity Constraints: Total received at store <= Store Capacity
+# Capacity Constraints
 for s in stores:
     prob += pulp.lpSum([vars[d][s] for d in depots]) <= store_capacity[s], f"Capacity_Constraint_{s}"
 
@@ -95,7 +93,7 @@ for s in stores:
 prob.solve(pulp.PULP_CBC_CMD(msg=False))
 status = pulp.LpStatus[prob.status]
 
-# --- CALCULATE OPTIMAL TOTAL FREIGHT COST ---
+# --- CALCULATE OPTIMAL METRICS ---
 total_freight_cost = sum(
     (pulp.value(vars[d][s]) or 0) * unit_costs[d][s]
     for d in depots for s in stores
@@ -121,14 +119,26 @@ col_left, col_right = st.columns(2)
 with col_left:
     st.subheader("Optimal Shipment Plan (TVs Allocated)")
     
+    # Construct base matrix
     results_data = {}
     for d in depots:
         results_data[d] = [int(pulp.value(vars[d][s]) or 0) for s in stores]
     
     df_results = pd.DataFrame(results_data, index=stores).T
-    df_results["TVs Shipped"] = df_results.sum(axis=1)
+    df_results["TVs Transported"] = df_results.sum(axis=1)
     df_results["Depot Supply"] = [supply[d] for d in depots]
-    df_results["Unused Supply"] = df_results["Depot Supply"] - df_results["TVs Shipped"]
+    df_results["Unused Supply"] = df_results["Depot Supply"] - df_results["TVs Transported"]
+
+    # Add Total Received / Column Sum row (matches Excel Received row)
+    total_received_row = {
+        "Store 1": df_results["Store 1"].sum(),
+        "Store 2": df_results["Store 2"].sum(),
+        "Store 3": df_results["Store 3"].sum(),
+        "TVs Transported": df_results["TVs Transported"].sum(),
+        "Depot Supply": df_results["Depot Supply"].sum(),
+        "Unused Supply": df_results["Unused Supply"].sum()
+    }
+    df_results.loc["Received (Total)"] = total_received_row
 
     st.dataframe(df_results, use_container_width=True)
 
@@ -140,6 +150,15 @@ with col_right:
         cost_data[d] = [unit_costs[d][s] for s in stores]
         
     df_costs = pd.DataFrame(cost_data, index=stores).T
+    
+    # Add Column Averages row
+    avg_row = {
+        "Store 1": df_costs["Store 1"].mean(),
+        "Store 2": df_costs["Store 2"].mean(),
+        "Store 3": df_costs["Store 3"].mean()
+    }
+    df_costs.loc["Average Cost"] = avg_row
+
     st.caption("Derived Freight Cost (Miles × £5.00/TV):")
     st.dataframe(df_costs.style.format("£{:.2f}"), use_container_width=True)
 
