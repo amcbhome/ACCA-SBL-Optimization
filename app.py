@@ -199,15 +199,18 @@ if pulp.LpStatus[status] == "Optimal":
 else:
     st.error("No optimal solution could be found with the current constraints.")
 
-# --- FOOTER / APP IDENTIFICATION & COPYRIGHT ---
+# --- FOOTER / APP IDENTIFICATION, LICENSE & DISCLAIMER ---
 st.divider()
 
 st.markdown(
     """
-    <div style="text-align: center; color: #6c757d; font-size: 0.85em;">
+    <div style="text-align: center; color: #6c757d; font-size: 0.85em; line-height: 1.5;">
         <b>ACCA SBL Supply Chain Optimizer</b> | Developed for Prescriptive Analytics & Decision Support<br>
-        <i>Advancing business intelligence for the AI era.</i><br>
-        <span style="font-size: 0.9em; opacity: 0.8;">© 2026 Alastair McBride. All rights reserved.</span>
+        <i>Advancing business intelligence for the AI era.</i><br><br>
+        <span style="font-size: 0.9em; opacity: 0.85;">
+            © 2026 Alastair McBride. Code released under the <b>MIT License</b>.<br>
+            <i>Disclaimer: Underlying case study scenario and parameter data adapted from ACCA examination resources for educational and demonstration purposes. ACCA does not endorse or sponsor this application.</i>
+        </span>
     </div>
     """,
     unsafe_allow_html=True
