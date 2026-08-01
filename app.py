@@ -13,7 +13,7 @@ st.set_page_config(
 st.title("🚚 ACCA SBL Supply Chain Optimizer")
 
 st.markdown(
-    "This app solves the [ACCA optimization problem](https://www.accaglobal.com/gb/en/student/exam-support-resources/professional-exams-study-resources/strategic-business-leader.html) with AI-assisted Python code, leading to automated optimization using linear programming."
+    "This app solves the [ACCA optimization problem](https://www.accaglobal.com/gb/en/student/exam-support-resources/professional-exams-study-resources/strategic-business-leader.html) with AI-assisted Python code, advancing business intelligence for the AI era."
 )
 
 st.divider()
