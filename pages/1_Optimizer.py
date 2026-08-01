@@ -22,8 +22,14 @@ st.markdown(
 
 st.divider()
 
-# --- CONSTANTS ---
+# --- CONSTANTS & FIXED ROUTE DISTANCES (MILES) ---
 RATE_PER_MILE_PER_UNIT = 5.00
+
+distances = {
+    "Depot 1": {"Store 1": 12.0, "Store 2": 25.0, "Store 3": 18.0},
+    "Depot 2": {"Store 1": 8.0,  "Store 2": 30.0, "Store 3": 15.0},
+    "Depot 3": {"Store 1": 22.0, "Store 2": 10.0, "Store 3": 20.0}
+}
 
 # --- SIDEBAR INTERACTIVE INPUTS ---
 st.sidebar.header("Model Parameters")
@@ -37,20 +43,6 @@ st.sidebar.subheader("Store Demand Requirements (Units)")
 demand_s1 = st.sidebar.number_input("Store 1 Demand", min_value=0, value=1800, step=100)
 demand_s2 = st.sidebar.number_input("Store 2 Demand", min_value=0, value=2200, step=100)
 demand_s3 = st.sidebar.number_input("Store 3 Demand", min_value=0, value=2500, step=100)
-
-# --- DISTANCE MATRIX INPUTS ---
-st.sidebar.subheader("Route Distances (Miles)")
-dist_d1_s1 = st.sidebar.number_input("Depot 1 -> Store 1 (mi)", min_value=0.0, value=12.0, step=1.0)
-dist_d1_s2 = st.sidebar.number_input("Depot 1 -> Store 2 (mi)", min_value=0.0, value=25.0, step=1.0)
-dist_d1_s3 = st.sidebar.number_input("Depot 1 -> Store 3 (mi)", min_value=0.0, value=18.0, step=1.0)
-
-dist_d2_s1 = st.sidebar.number_input("Depot 2 -> Store 1 (mi)", min_value=0.0, value=8.0, step=1.0)
-dist_d2_s2 = st.sidebar.number_input("Depot 2 -> Store 2 (mi)", min_value=0.0, value=30.0, step=1.0)
-dist_d2_s3 = st.sidebar.number_input("Depot 2 -> Store 3 (mi)", min_value=0.0, value=15.0, step=1.0)
-
-dist_d3_s1 = st.sidebar.number_input("Depot 3 -> Store 1 (mi)", min_value=0.0, value=22.0, step=1.0)
-dist_d3_s2 = st.sidebar.number_input("Depot 3 -> Store 2 (mi)", min_value=0.0, value=10.0, step=1.0)
-dist_d3_s3 = st.sidebar.number_input("Depot 3 -> Store 3 (mi)", min_value=0.0, value=20.0, step=1.0)
 
 # --- DATA STRUCTURE PREPARATION ---
 depots = ["Depot 1", "Depot 2", "Depot 3"]
@@ -66,12 +58,6 @@ demand = {
     "Store 1": demand_s1,
     "Store 2": demand_s2,
     "Store 3": demand_s3
-}
-
-distances = {
-    "Depot 1": {"Store 1": dist_d1_s1, "Store 2": dist_d1_s2, "Store 3": dist_d1_s3},
-    "Depot 2": {"Store 1": dist_d2_s1, "Store 2": dist_d2_s2, "Store 3": dist_d2_s3},
-    "Depot 3": {"Store 1": dist_d3_s1, "Store 2": dist_d3_s2, "Store 3": dist_d3_s3}
 }
 
 # Calculate per-unit shipping cost derived from distance (£5/mi/unit)
@@ -141,11 +127,10 @@ else:
         st.dataframe(df_results, use_container_width=True)
 
     with col_right:
-        st.subheader("Route Mileage & Per-Unit Freight Cost Matrix")
+        st.subheader("Route Mileage Matrix")
         
-        # Combined display of distance and resulting cost at £5/mi
         df_matrix = pd.DataFrame(distances).T
-        st.caption("Distances in Miles (Freight Cost = Mileage × £5.00/unit):")
+        st.caption("Fixed Distances in Miles (Freight Cost = Mileage × £5.00/unit):")
         st.dataframe(df_matrix.style.format("{:.1f} mi"), use_container_width=True)
 
     st.divider()
@@ -171,7 +156,7 @@ else:
         avg_cost = (total_cost / total_demand) if total_demand > 0 else 0.0
         
         st.info(
-            f"• **Freight Rate:** £5.00 per mile per unit.\n"
+            f"• **Freight Rate:** Fixed at £5.00 per mile per unit.\n"
             f"• **Network Slack:** {unallocated_supply:,} units of surplus capacity remain unallocated across the system.\n"
             f"• **Active Routes:** {active_routes} out of 9 possible shipping routes utilized.\n"
             f"• **Average Cost per Unit Shipped:** £{avg_cost:.2f}"
