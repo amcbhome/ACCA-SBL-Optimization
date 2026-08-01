@@ -9,17 +9,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- TITLE & INTRODUCTORY PARAGRAPH ---
-st.title("🚚 Prescriptive Supply Chain Transportation Optimizer")
+# --- TITLE & INTRODUCTORY HEADER ---
+st.title("🚚 ACCA SBL Supply Chain Optimizer")
 
 st.markdown(
-    """
-    ### Overview
-    This application solves the **ACCA SBL Big Data Freight & Distribution Problem** by calculating the cost-optimal transportation schedule across multi-depot and retail store networks. 
-    
-    * **Problem Context:** Modernizing legacy accounting case study spreadsheet frameworks into dynamic, scalable analytics.
-    * **Methodology:** Developed using **GenAI-assisted Python coding** (`PuLP` linear programming engine & `pandas` data processing) and deployed as an automated Business Intelligence dashboard via **Streamlit**.
-    """
+    "This app solves the [ACCA optimization problem](https://www.accaglobal.com/gb/en/student/exam-support-resources/professional-exams-study-resources/strategic-business-leader.html) with AI-assisted Python code, leading to automated optimization using linear programming."
 )
 
 st.divider()
@@ -136,14 +130,13 @@ if pulp.LpStatus[status] == "Optimal":
     st.divider()
 
     # --- QUALITATIVE ANALYTICAL INSIGHT ---
-    st.subheader("📊 Qualitative Insight: What the Red Cell Means")
+    st.subheader("📊 Analytical Insight")
 
     st.info(
-        "**Operational Buffer:** The highlighted red cell (**150 units of capacity slack at Store 2**) represents "
-        "the only non-binding point across the entire network. Because all supply from every depot is fully utilized "
-        "and Stores 1 and 3 are filled to capacity, Store 2 acts as the system's sole operational cushion. "
-        "This unallocated space allows the business to absorb regional demand spikes or house temporary promotional stock "
-        "without needing to expand warehouse capacity."
+        "**Unallocated Resource:** The highlighted cell (**150 units at Store 2**) represents an "
+        "**unallocated resource** resulting from a **not fully binding constraint** in the linear programming model. "
+        "While all depot supply is 100% dispatched and Stores 1 and 3 hit 100% capacity (fully binding), "
+        "Store 2 retains unutilized intake limit under the optimal distribution plan."
     )
 
 else:
