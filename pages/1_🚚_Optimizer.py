@@ -104,11 +104,11 @@ else:
     status = pulp.LpStatus[prob.status]
 
     # --- TOP METRICS DASHBOARD ---
-    total_cost = pulp.value(prob.objective)
+    total_cost = pulp.value(prob.objective) or 0.0
     
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     col_m1.metric("Optimization Status", status)
-    col_m2.metric("Total Optimal Freight Cost", f"£{total_cost:,.2f}" if total_cost else "£0.00")
+    col_m2.metric("Total Optimal Freight Cost", f"£{total_cost:,.2f}")
     col_m3.metric("Total Supply Available", f"{total_supply:,} units")
     col_m4.metric("Total Demand Required", f"{total_demand:,} units")
 
@@ -120,10 +120,10 @@ else:
     with col_left:
         st.subheader("📋 Optimal Shipment Plan (Units Allocated)")
         
-        # Build allocation DataFrame
+        # Build allocation DataFrame with safe None-handling
         results_data = {}
         for d in depots:
-            results_data[d] = [int(vars[d][s].varValue()) for s in stores]
+            results_data[d] = [int(vars[d][s].varValue() or 0) for s in stores]
         
         df_results = pd.DataFrame(results_data, index=stores).T
         df_results["Total Shipped"] = df_results.sum(axis=1)
@@ -147,7 +147,7 @@ else:
     with col_s1:
         st.markdown("### Depot Capacity Utilization")
         for d in depots:
-            shipped = sum(vars[d][s].varValue() for s in stores)
+            shipped = sum(vars[d][s].varValue() or 0 for s in stores)
             cap = supply[d]
             pct = (shipped / cap * 100) if cap > 0 else 0
             st.write(f"**{d}:** {int(shipped):,} / {cap:,} units ({pct:.1f}% utilized)")
@@ -156,8 +156,11 @@ else:
     with col_s2:
         st.markdown("### Decision Model Insights")
         unallocated_supply = total_supply - total_demand
+        active_routes = sum(1 for d in depots for s in stores if (vars[d][s].varValue() or 0) > 0)
+        avg_cost = (total_cost / total_demand) if total_demand > 0 else 0.0
+        
         st.info(
             f"• **Network Slack:** {unallocated_supply:,} units of surplus capacity remain unallocated across the system.\n"
-            f"• **Active Routes:** {sum(1 for d in depots for s in stores if vars[d][s].varValue() > 0)} out of 9 possible shipping routes utilized.\n"
-            f"• **Average Cost per Unit Shipped:** £{(total_cost / total_demand):.2f}" if total_demand > 0 else "£0.00"
+            f"• **Active Routes:** {active_routes} out of 9 possible shipping routes utilized.\n"
+            f"• **Average Cost per Unit Shipped:** £{avg_cost:.2f}"
         )
