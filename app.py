@@ -71,7 +71,6 @@ distances = {
 model = pulp.LpProblem("Supply_Chain_Optimization", pulp.LpMinimize)
 
 # Decision Variables
-routes = [(i, j) for i in depots for j in stores]
 x = pulp.LpVariable.dicts("Route", (depots, stores), lowBound=0, cat="Integer")
 
 # Objective Function
@@ -79,18 +78,12 @@ model += pulp.lpSum([x[i][j] * distances[i][j] * freight_rate for i in depots fo
 
 # Constraints
 # 1. Supply Constraints (Equality: All available inventory dispatched)
-supply_constraints = {}
 for i in depots:
-    c = pulp.lpSum([x[i][j] for j in stores]) == supply[i]
-    model += c, f"Supply_Constraint_{i}"
-    supply_constraints[i] = c
+    model += pulp.lpSum([x[i][j] for j in stores]) == supply[i], f"Supply_Constraint_{i}"
 
 # 2. Capacity Constraints (Inequality: Delivered units <= Capacity)
-capacity_constraints = {}
 for j in stores:
-    c = pulp.lpSum([x[i][j] for i in depots]) <= capacity[j]
-    model += c, f"Capacity_Constraint_{j}"
-    capacity_constraints[j] = c
+    model += pulp.lpSum([x[i][j] for i in depots]) <= capacity[j], f"Capacity_Constraint_{j}"
 
 # Solve Model
 status = model.solve(pulp.PULP_CBC_CMD(msg=False))
@@ -109,58 +102,86 @@ if pulp.LpStatus[status] == "Optimal":
     # Schedule Dataframe
     schedule_data = {j: [int(x[i][j].varValue) for i in depots] for j in stores}
     schedule_df = pd.DataFrame(schedule_data, index=depots)
-    schedule_df["Total Dispatched"] = schedule_df.sum(axis=1)
     
+    # Calculate row (depot) and column (store) totals
+    row_totals = schedule_df.sum(axis=1)
+    col_totals = schedule_df.sum(axis=0)
+    
+    # Display main dispatch matrix
     st.dataframe(schedule_df.style.format("{:,}"), use_container_width=True)
 
     st.divider()
 
-    # --- CONSTRAINT BINDING CHECKLIST ---
+    # --- CONSTRAINT BINDING & CAPACITY CHECKLIST ---
     st.subheader("📌 Constraint Binding & Capacity Checklist")
-    st.markdown("This checklist analyzes each operational constraint to indicate whether it is **Binding** (operating at 100% full capacity) or **Non-Binding** (has remaining slack capacity).")
+    st.markdown(
+        "This checklist calculates the totals from the dispatch matrix rows (Depots) and columns (Stores) "
+        "and evaluates whether each constraint is **Fully Binding** (100% capacity/supply utilized) "
+        "or **Not Fully Binding** (contains remaining slack capacity)."
+    )
 
-    checklist_items = []
-
-    # Check Supply Constraints
-    for i in depots:
-        dispatched = sum(int(x[i][j].varValue) for j in stores)
-        max_supply = supply[i]
-        slack = max_supply - dispatched
-        is_binding = abs(slack) < 1e-5
+    # 1. Depot Supply Checklist (Row Totals)
+    st.markdown("#### 🏭 Supply Depot Constraints (Row Totals)")
+    depot_cols = st.columns(3)
+    for idx, depot in enumerate(depots):
+        actual_shipped = int(row_totals[depot])
+        max_supply = supply[depot]
+        is_binding = (actual_shipped == max_supply)
         
-        checklist_items.append({
-            "Constraint Category": "Depot Dispatch / Supply",
-            "Entity": i,
-            "Target / Limit": f"{max_supply:,} units",
-            "Actual Value": f"{dispatched:,} units",
-            "Slack / Unused": f"{int(slack):,} units",
-            "Status": "🔴 Binding (100% Dispatched)" if is_binding else f"🟢 Non-Binding ({int(slack)} unused)"
-        })
+        with depot_cols[idx]:
+            if is_binding:
+                st.success(
+                    f"**{depot}**\n\n"
+                    f"**Status:** Fully Binding 🟢\n\n"
+                    f"**Total Shipped:** {actual_shipped:,} / {max_supply:,} units (100%)"
+                )
+            else:
+                st.error(
+                    f"**{depot}**\n\n"
+                    f"**Status:** Not Fully Binding 🔴\n\n"
+                    f"**Total Shipped:** {actual_shipped:,} / {max_supply:,} units"
+                )
 
-    # Check Store Capacity Constraints
-    for j in stores:
-        received = sum(int(x[i][j].varValue) for i in depots)
-        max_cap = capacity[j]
-        slack = max_cap - received
-        is_binding = abs(slack) < 1e-5
+    # 2. Store Capacity Checklist (Column Totals)
+    st.markdown("#### 🏬 Store Capacity Constraints (Column Totals)")
+    store_cols = st.columns(3)
+    for idx, store in enumerate(stores):
+        actual_received = int(col_totals[store])
+        max_cap = capacity[store]
+        is_binding = (actual_received == max_cap)
+        slack = max_cap - actual_received
+        
+        with store_cols[idx]:
+            if is_binding:
+                st.success(
+                    f"**{store}**\n\n"
+                    f"**Status:** Fully Binding 🟢\n\n"
+                    f"**Total Received:** {actual_received:,} / {max_cap:,} units (100%)"
+                )
+            else:
+                st.error(
+                    f"**{store}**\n\n"
+                    f"**Status:** Not Fully Binding 🔴\n\n"
+                    f"**Total Received:** {actual_received:,} / {max_cap:,} units ({slack:,} units slack)"
+                )
 
-        checklist_items.append({
-            "Constraint Category": "Store Storage Capacity",
-            "Entity": j,
-            "Target / Limit": f"{max_cap:,} units",
-            "Actual Value": f"{received:,} units",
-            "Slack / Unused": f"{int(slack):,} units",
-            "Status": "🔴 Binding (At Max Capacity)" if is_binding else f"🟢 Non-Binding ({int(slack)} units slack)"
-        })
+    st.divider()
 
-    checklist_df = pd.DataFrame(checklist_items)
-    
-    # Display Checklist Table
-    st.table(checklist_df)
+    # --- ANALYTICAL INSIGHT PARAGRAPH ---
+    st.subheader("📊 Analytical Insight")
+    s2_received = int(col_totals["Store 2"])
+    s2_cap_val = capacity["Store 2"]
+    s2_slack_val = s2_cap_val - s2_received
 
-    # Key Takeaway Banner
-    s2_slack = capacity["Store 2"] - sum(int(x[i]["Store 2"].varValue) for i in depots)
-    st.info(f"💡 **Strategic Insight:** Store 2 currently operates with **{int(s2_slack)} units of non-binding slack capacity**, offering an ideal operational buffer for promotional stock holding or seasonal demand spikes.")
+    st.info(
+        f"**Binding Network Analysis:** Five out of six network constraints—specifically all three supply depots "
+        f"(Depot 1, 2, and 3) alongside Store 1 and Store 3—are operating as **fully binding constraints (🟢 Green)**, "
+        f"utilizing 100% of their available inventory and floor space. The only non-binding node across the entire distribution "
+        f"network is **Store 2 (🔴 Red)**, which receives **{s2_received:,} units** against a maximum capacity of **{s2_cap_val:,} units**, "
+        f"leaving **{s2_slack_val:,} units of non-binding slack capacity**. From a managerial perspective, this single non-binding point "
+        f"identifies Store 2 as the sole strategic buffer in the supply chain—offering immediate operational flexibility to absorb "
+        f"promotional inventory, store seasonal safety stock, or accommodate fluctuating regional demand without incurring additional facility capital expenditure."
+    )
 
 else:
     st.error("No optimal solution could be found with the current constraints.")
