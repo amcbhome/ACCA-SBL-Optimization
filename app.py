@@ -18,17 +18,16 @@ st.markdown(
 
 st.divider()
 
-# --- PROBLEM SCENARIO & OPTIMIZATION LOGIC ---
-st.subheader("📖 Problem Scenario & Optimization Logic")
+# --- 1. SCENARIO ---
+st.subheader("1. Scenario")
 
 st.markdown(
     """
-    ### **The Transportation Scenario**
-    The company needs to distribute **televisions** from three regional depots to three retail stores. 
+    The company needs to distribute **televisions** from three regional depots to three retail stores:
 
     * **Depot Inventory:** Depot 1 has **2,500 TVs**, Depot 2 has **3,100 TVs**, and Depot 3 has **1,250 TVs** available for dispatch.
     * **Store Holding Capacity:** Store 1 can hold **2,000 TVs**, Store 2 can hold **3,000 TVs**, and Store 3 can hold **2,000 TVs**.
-    * **Freight Cost Rate:** Shipping incurs a rate of **£5.00 per TV per mile**.
+    * **Freight Cost Rate:** Shipping incurs a fixed rate of **£5.00 per TV per mile**.
 
     #### **Depot-to-Store Distance Matrix (Miles)**
     """
@@ -49,30 +48,47 @@ st.table(distances_display)
 
 st.markdown(
     """
-    ### **Model Architecture & Mechanics**
-    The linear program identifies the distribution schedule that minimizes total transit costs across the network:
-
-    * **Decision Variables:** The model determines the exact number of TVs shipped along each route between depots and stores.
-    * **Objective Function:** Calculated as the sum of all route decisions multiplied by their route distance and the £5/TV/mile freight rate:
+    > **The Business Objective:** The company wants to determine the **most cost-efficient delivery schedule** that satisfies all store receiving capacities while completely dispatching available depot inventories.
     """
 )
 
-# Mathematical formulation of the Objective Function
+st.divider()
+
+# --- 2. SOLUTION ---
+st.subheader("2. Solution")
+
+st.markdown(
+    """
+    To find the optimal delivery schedule, the problem is formulated and solved using **Linear Programming**, structured into three core components:
+
+    ### **1. Decision Variables**
+    The quantities of TVs shipped along each specific route are defined as decision variables. For 3 depots ($i$) and 3 stores ($j$), there are 9 route variables:
+    $$\\text{TVs}_{i,j} \\ge 0 \\quad \\forall \\, i \\in \\{\\text{Depot 1, 2, 3}\\}, \\, j \\in \\{\\text{Store 1, 2, 3}\\}$$
+
+    ### **2. Objective Function**
+    The goal is to minimize total transportation cost across all 9 possible shipping routes:
+    """
+)
+
 st.latex(r"\text{Minimize Total Cost} = \sum_{i \in \text{Depots}} \sum_{j \in \text{Stores}} (\text{TVs}_{i,j} \times \text{Distance}_{i,j} \times £5.00)")
 
 st.markdown(
     """
-    * **Constraint Satisfaction:** The optimization engine evaluates route combinations to achieve the lowest possible total cost while satisfying two conditions:
-      1. **Supply Constraints:** 100% of the TV inventory at each depot must be dispatched.
-      2. **Capacity Constraints:** The total number of TVs delivered to any store cannot exceed its physical holding capacity.
+    ### **3. Constraints**
+    The optimization engine searches the solution space for the lowest cost while satisfying two sets of linear boundaries:
+
+    * **Supply Constraints (Equality):** Every TV available at each depot must be dispatched.
+      $$\\sum_{j \\in \\text{Stores}} \\text{TVs}_{i,j} = \\text{Supply}_i \\quad \\forall \\, i \\in \\text{Depots}$$
+    * **Capacity Constraints (Inequality):** Total TVs received by any store cannot exceed its physical holding limit.
+      $$\\sum_{i \\in \\text{Depots}} \\text{TVs}_{i,j} \\le \\text{Capacity}_j \\quad \\forall \\, j \\in \\text{Stores}$$
 
     ---
 
     ### **Key Analytical Insight: Constraint Binding & Slack**
-    Solving linear programs reveals operational insights beyond basic total cost:
+    Solving linear programs reveals critical operational insights beyond the minimized cost figure:
 
-    * **Fully Binding Constraints:** When a store's capacity or depot's supply limit is met exactly (100% utilization), that constraint is **fully binding** and acts as a bottleneck in the network.
-    * **Not Fully Binding Constraints (Slack):** When an optimal solution is reached without fully exhausting a capacity limit, the remaining room is **slack**. This highlighted slack identifies **unallocated resources** in the network—revealing where future supply growth or sudden demand surges can be absorbed without requiring facility expansion.
+    * **Fully Binding Constraints:** When a capacity or supply limit is met exactly (100% utilization), that constraint is **fully binding**, acting as an active bottleneck in the network.
+    * **Not Fully Binding Constraints (Slack):** When an optimal solution is reached without hitting a capacity limit, the unutilized capacity is **slack**. This slack identifies **unallocated resources** in the network—highlighting where future supply growth or demand surges can be absorbed without expanding facilities.
     """
 )
 
@@ -142,7 +158,9 @@ for j in stores:
 # Solve Model
 status = model.solve(pulp.PULP_CBC_CMD(msg=False))
 
-# --- RESULTS DISPLAY ---
+# --- 3. OUTPUT ---
+st.subheader("3. Output")
+
 if pulp.LpStatus[status] == "Optimal":
     total_cost = pulp.value(model.objective)
     
@@ -151,7 +169,7 @@ if pulp.LpStatus[status] == "Optimal":
     col2.metric("Total Optimal Freight Cost", f"£{total_cost:,.2f}")
     col3.metric("Total TVs Dispatched", f"{sum(supply.values()):,} units")
 
-    st.subheader("📋 Optimal Dispatch Schedule & Network Summary")
+    st.markdown("#### **Optimal Dispatch Schedule & Network Summary**")
     
     # 1. Build Base Schedule Dataframe
     schedule_data = {j: [int(x[i][j].varValue) for i in depots] for j in stores}
