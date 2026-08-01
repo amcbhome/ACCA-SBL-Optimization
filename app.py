@@ -18,6 +18,45 @@ st.markdown(
 
 st.divider()
 
+# --- PROBLEM SCENARIO & OPTIMIZATION LOGIC ---
+st.subheader("📖 Problem Scenario & Optimization Logic")
+
+st.markdown(
+    """
+    ### **The Transportation Scenario**
+    The business operates a multi-depot distribution network shipping goods across multiple retail stores. 
+    Each depot holds a fixed supply of inventory, while each retail store has a maximum receiving capacity. 
+    Because distance and shipping routes vary across the network, every potential route incurs a different unit transportation cost. 
+
+    ### **Model Architecture & Mechanics**
+    The goal of the linear program is to minimize total network transit costs through a structured mathematical formulation:
+
+    * **Decision Variables:** The model evaluates every route between depots and stores to determine the exact number of units to ship across each individual pathway.
+    * **Objective Function:** Calculated as the sum of all route decisions multiplied by their respective distance and freight rates:
+    """
+)
+
+# Mathematical formulation of the Objective Function
+st.latex(r"\text{Minimize Total Cost} = \sum_{i \in \text{Depots}} \sum_{j \in \text{Stores}} (\text{Units}_{i,j} \times \text{Distance}_{i,j} \times \text{Freight Rate})")
+
+st.markdown(
+    """
+    * **Constraint Satisfaction:** The optimization engine evaluates combination schedules to identify the lowest possible cost while satisfying two strict conditions:
+      1. **Supply Constraints:** 100% of available inventory at each depot must be dispatched.
+      2. **Capacity Constraints:** Total deliveries arriving at any store cannot exceed its maximum physical capacity.
+
+    ---
+
+    ### **Key Analytical Insight: Constraint Binding & Slack**
+    Solving linear programs reveals critical qualitative operational insights beyond basic cost totals:
+
+    * **Fully Binding Constraints:** When a capacity or supply limit is met exactly (100% utilization), that constraint is **fully binding**, acting as a bottleneck in the network.
+    * **Not Fully Binding Constraints (Slack):** When an optimal solution is reached without hitting a capacity limit, the remaining room is **slack**. This highlighted slack identifies **unallocated resources** in the network—revealing where future supply growth or sudden demand surges can be absorbed without requiring facility expansion.
+    """
+)
+
+st.divider()
+
 # --- SIDEBAR INPUTS ---
 st.sidebar.header("⚙️ Model Parameters")
 
