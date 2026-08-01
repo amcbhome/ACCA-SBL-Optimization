@@ -99,88 +99,66 @@ if pulp.LpStatus[status] == "Optimal":
 
     st.subheader("📋 Optimal Dispatch Schedule (Units Shipped)")
     
-    # Schedule Dataframe
+    # Base Schedule Dataframe
     schedule_data = {j: [int(x[i][j].varValue) for i in depots] for j in stores}
     schedule_df = pd.DataFrame(schedule_data, index=depots)
     
-    # Calculate row (depot) and column (store) totals
-    row_totals = schedule_df.sum(axis=1)
-    col_totals = schedule_df.sum(axis=0)
+    # Add Total Column and Total Row directly to dataframe
+    schedule_df["Total Shipped"] = schedule_df.sum(axis=1)
+    schedule_df.loc["Total Received"] = schedule_df.sum(axis=0)
     
-    # Display main dispatch matrix
+    # Display main matrix with integrated row and column totals
     st.dataframe(schedule_df.style.format("{:,}"), use_container_width=True)
 
     st.divider()
 
     # --- CONSTRAINT BINDING & CAPACITY CHECKLIST ---
     st.subheader("📌 Constraint Binding & Capacity Checklist")
-    st.markdown(
-        "This checklist calculates the totals from the dispatch matrix rows (Depots) and columns (Stores) "
-        "and evaluates whether each constraint is **Fully Binding** (100% capacity/supply utilized) "
-        "or **Not Fully Binding** (contains remaining slack capacity)."
-    )
 
-    # 1. Depot Supply Checklist (Row Totals)
-    st.markdown("#### 🏭 Supply Depot Constraints (Row Totals)")
-    depot_cols = st.columns(3)
+    # 6-Card Grid
+    grid_cols = st.columns(3)
+
+    # 1. Row Totals: Depots
     for idx, depot in enumerate(depots):
-        actual_shipped = int(row_totals[depot])
-        max_supply = supply[depot]
-        is_binding = (actual_shipped == max_supply)
+        shipped = schedule_df.loc[depot, "Total Shipped"]
+        limit = supply[depot]
+        is_binding = (shipped == limit)
         
-        with depot_cols[idx]:
+        with grid_cols[idx]:
             if is_binding:
-                st.success(
-                    f"**{depot}**\n\n"
-                    f"**Status:** Fully Binding 🟢\n\n"
-                    f"**Total Shipped:** {actual_shipped:,} / {max_supply:,} units (100%)"
-                )
+                st.success(f"**{depot} (Supply)**\n\n🟢 **Fully Binding**\n\nShipped: {shipped:,} / {limit:,} units")
             else:
-                st.error(
-                    f"**{depot}**\n\n"
-                    f"**Status:** Not Fully Binding 🔴\n\n"
-                    f"**Total Shipped:** {actual_shipped:,} / {max_supply:,} units"
-                )
+                st.error(f"**{depot} (Supply)**\n\n🔴 **Not Fully Binding**\n\nShipped: {shipped:,} / {limit:,} units")
 
-    # 2. Store Capacity Checklist (Column Totals)
-    st.markdown("#### 🏬 Store Capacity Constraints (Column Totals)")
-    store_cols = st.columns(3)
+    # 2. Column Totals: Stores
     for idx, store in enumerate(stores):
-        actual_received = int(col_totals[store])
-        max_cap = capacity[store]
-        is_binding = (actual_received == max_cap)
-        slack = max_cap - actual_received
+        received = schedule_df.loc["Total Received", store]
+        limit = capacity[store]
+        is_binding = (received == limit)
+        slack = limit - received
         
-        with store_cols[idx]:
+        with grid_cols[idx]:
             if is_binding:
-                st.success(
-                    f"**{store}**\n\n"
-                    f"**Status:** Fully Binding 🟢\n\n"
-                    f"**Total Received:** {actual_received:,} / {max_cap:,} units (100%)"
-                )
+                st.success(f"**{store} (Capacity)**\n\n🟢 **Fully Binding**\n\nReceived: {received:,} / {limit:,} units")
             else:
-                st.error(
-                    f"**{store}**\n\n"
-                    f"**Status:** Not Fully Binding 🔴\n\n"
-                    f"**Total Received:** {actual_received:,} / {max_cap:,} units ({slack:,} units slack)"
-                )
+                st.error(f"**{store} (Capacity)**\n\n🔴 **Not Fully Binding**\n\nReceived: {received:,} / {limit:,} units ({slack:,} slack)")
 
     st.divider()
 
-    # --- ANALYTICAL INSIGHT PARAGRAPH ---
-    st.subheader("📊 Analytical Insight")
-    s2_received = int(col_totals["Store 2"])
+    # --- FOCUSED ANALYTICAL INSIGHT (RED CELL ONLY) ---
+    st.subheader("📊 Analytical Insight: Unused Network Capacity")
+    
+    s2_received = schedule_df.loc["Total Received", "Store 2"]
     s2_cap_val = capacity["Store 2"]
     s2_slack_val = s2_cap_val - s2_received
 
     st.info(
-        f"**Binding Network Analysis:** Five out of six network constraints—specifically all three supply depots "
-        f"(Depot 1, 2, and 3) alongside Store 1 and Store 3—are operating as **fully binding constraints (🟢 Green)**, "
-        f"utilizing 100% of their available inventory and floor space. The only non-binding node across the entire distribution "
-        f"network is **Store 2 (🔴 Red)**, which receives **{s2_received:,} units** against a maximum capacity of **{s2_cap_val:,} units**, "
-        f"leaving **{s2_slack_val:,} units of non-binding slack capacity**. From a managerial perspective, this single non-binding point "
-        f"identifies Store 2 as the sole strategic buffer in the supply chain—offering immediate operational flexibility to absorb "
-        f"promotional inventory, store seasonal safety stock, or accommodate fluctuating regional demand without incurring additional facility capital expenditure."
+        f"Across the entire transportation network, **Store 2** is the sole **not fully binding** constraint (🔴 Red). "
+        f"While all three depots dispatch 100% of their supply and Stores 1 and 3 hit 100% of their maximum intake, "
+        f"Store 2 receives **{s2_received:,} units against its {s2_cap_val:,}-unit limit**.\n\n"
+        f"This leaves **{s2_slack_val:,} units of unallocated slack space**. Strategically, this red cell identifies "
+        f"Store 2 as the network's only operational safety valve—providing built-in flexibility to absorb unexpected demand "
+        f"spikes or hold promotional inventory without requiring extra warehouse investment."
     )
 
 else:
