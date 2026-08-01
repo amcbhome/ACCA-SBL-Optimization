@@ -97,28 +97,39 @@ if pulp.LpStatus[status] == "Optimal":
     col2.metric("Total Optimal Freight Cost", f"£{total_cost:,.2f}")
     col3.metric("Total Units Dispatched", f"{sum(supply.values()):,} units")
 
-    st.subheader("📋 Optimal Dispatch Schedule (Units Shipped)")
+    st.subheader("📋 Optimal Dispatch Schedule & Network Summary")
     
-    # Base Schedule Dataframe
+    # 1. Build Base Schedule Dataframe
     schedule_data = {j: [int(x[i][j].varValue) for i in depots] for j in stores}
     schedule_df = pd.DataFrame(schedule_data, index=depots)
     
-    # Add Total Column and Total Row directly to dataframe
+    # 2. Calculate Totals
     schedule_df["Total Shipped"] = schedule_df.sum(axis=1)
-    schedule_df.loc["Total Received"] = schedule_df.sum(axis=0)
     
-    # Display main matrix with integrated row and column totals
-    st.dataframe(schedule_df.style.format("{:,}"), use_container_width=True)
+    # 3. Add Supply Limit and Supply Slack columns
+    schedule_df["Supply Limit"] = [supply[depot] for depot in depots]
+    schedule_df["Supply Slack"] = schedule_df["Supply Limit"] - schedule_df["Total Shipped"]
+    
+    # 4. Add Summary Rows for Store Received, Capacity Limits, and Capacity Slack
+    total_received = schedule_df[stores].sum(axis=0)
+    store_limits = pd.Series({j: capacity[j] for j in stores})
+    store_slack = store_limits - total_received
+    
+    schedule_df.loc["Total Received"] = list(total_received) + [total_received.sum(), sum(capacity.values()), sum(capacity.values()) - total_received.sum()]
+    schedule_df.loc["Capacity Limit"] = list(store_limits) + [sum(capacity.values()), "-", "-"]
+    schedule_df.loc["Capacity Slack"] = list(store_slack) + [sum(capacity.values()) - total_received.sum(), "-", "-"]
+
+    # Display full matrix with embedded capacity/supply limits
+    st.dataframe(schedule_df, use_container_width=True)
 
     st.divider()
 
     # --- CONSTRAINT BINDING & CAPACITY CHECKLIST ---
     st.subheader("📌 Constraint Binding & Capacity Checklist")
 
-    # 6-Card Grid
     grid_cols = st.columns(3)
 
-    # 1. Row Totals: Depots
+    # Depot Cards
     for idx, depot in enumerate(depots):
         shipped = schedule_df.loc[depot, "Total Shipped"]
         limit = supply[depot]
@@ -130,7 +141,7 @@ if pulp.LpStatus[status] == "Optimal":
             else:
                 st.error(f"**{depot} (Supply)**\n\n🔴 **Not Fully Binding**\n\nShipped: {shipped:,} / {limit:,} units")
 
-    # 2. Column Totals: Stores
+    # Store Cards
     for idx, store in enumerate(stores):
         received = schedule_df.loc["Total Received", store]
         limit = capacity[store]
