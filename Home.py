@@ -2,32 +2,52 @@ import streamlit as st
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
-    page_title="Alastair McBride | Portfolio & Interactive CV",
+    page_title="Alastair McBride | Online CV & Portfolio",
     page_icon="💼",
     layout="wide"
 )
 
-# --- HEADER SECTION ---
-st.title("Alastair McBride")
-st.subheader("Decision-Support & Prescriptive Analytics Specialist")
+# --- HEADER & CV IDENTITY ---
+col_title, col_badge = st.columns([3, 1])
+
+with col_title:
+    st.title("Alastair McBride")
+    st.subheader("Decision-Support & Prescriptive Analytics Specialist")
+
+with col_badge:
+    st.markdown("### 📄 **Online CV**")
+    st.caption("Interactive Portfolio & Resume")
 
 st.markdown(
     """
     *Bridging the gap between accounting logic, operational research, and modern software tools.*
     
     📍 **Location:** Scotland, UK  
-    🔗 **GitHub:** [github.com/amcbhome](https://github.com/amcbhome)  
+    🔗 **GitHub Profile:** [github.com/amcbhome](https://github.com/amcbhome)  
     ✉️ **Contact:** [Your Email Here]
     """
 )
 
 st.divider()
 
-# --- FEATURED PROJECT BANNER ---
-st.info(
-    "👉 **Explore Live Demo:** Select **'1 🚚 Optimizer'** from the sidebar to launch an interactive "
-    "Linear Programming supply chain transportation model built with Python and `PuLP`."
+# --- PROFESSIONAL SUMMARY & NAVIGATION GUIDE ---
+st.markdown("### 🎯 **Professional Overview**")
+st.markdown(
+    """
+    Welcome to my interactive CV and web portfolio. I specialize in applying **prescriptive analytics** and 
+    **linear programming** to solve supply chain and management accounting problems. 
+    
+    This web app serves as both my living resume and a functional proof-of-concept platform for my data modeling projects.
+    """
 )
+
+# Callout banner directing users to the sidebar app
+st.info(
+    "💡 **How to navigate this site:** You are currently viewing my **CV & Credentials Homepage**. "
+    "To test my live interactive data model, select **'1 🚚 Optimizer'** from the left sidebar navigation menu."
+)
+
+st.divider()
 
 # --- CORE COMPETENCIES ---
 st.header("⚡ Core Competencies")
@@ -91,7 +111,7 @@ col_edu1, col_edu2 = st.columns(2)
 with col_edu1:
     st.markdown("### **BAcc (Hons) Accountancy**")
     st.markdown("**University of the West of Scotland** | 2021 – 2025")
-    st.markdown("- **Top Academic Performance:** Grade A in Management Accounting (MA) & Financial Management (FM).")
+    st.markdown("- Grade A in Management Accounting (MA) & Financial Management (FM).")
     st.markdown("- Core focus on cost accounting, financial decision-making, and quantitative business management.")
 
 with col_edu2:
@@ -102,4 +122,4 @@ with col_edu2:
 st.divider()
 
 # --- FOOTER ---
-st.caption("© 2026 Alastair McBride. Portfolio application hosted on Streamlit Community Cloud.")
+st.caption("© 2026 Alastair McBride. Interactive CV hosted on Streamlit Community Cloud.")
