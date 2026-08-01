@@ -1,37 +1,43 @@
-# 🚚 ACCA SBL Supply Chain Optimizer
+# Hi, I'm Alastair McBride 👋
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io/)
+### **Decision-Support & Prescriptive Analytics Specialist**
+*Bridging the gap between management accounting logic, quantitative modeling, and modern Python tools.*
 
-An interactive web application demonstrating prescriptive analytics and operations research techniques. Built using Python, `PuLP`, and Streamlit, this tool solves multi-depot linear programming transportation matrices modeled after strategic business management scenarios.
-
----
-
-## 📌 Business Case & Overview
-
-Logistics management requires allocating limited inventories across distribution networks to minimize freight overhead while honoring physical constraints.
-
-* **Objective:** Minimize total transportation cost across a 9-route distribution network.
-* **Depot Supply:** 6,850 total units across 3 regional depots.
-* **Store Capacities:** 7,000 total receiving capacity across 3 retail outlets.
-* **Prescriptive Model:** Formulated via Linear Programming (LP) and solved using Branch-and-Bound algorithms (`PuLP` COIN-OR CBC solver).
-* **Key Business Insight:** The application dynamically calculates capacity utilization and identifies non-binding constraints (e.g., 150 units of unallocated slack capacity at Store 2).
+📍 **Location:** Scotland, UK  
+🎓 **Education:** BAcc (Hons) Accountancy | Grade A in Management Accounting & Financial Management  
+📜 **Professional Status:** ACCA Fundamental Exemptions (F1–F9)  
+🔗 **Live Portfolio App:** [Streamlit Decision-Support Hub](https://your-streamlit-app-url.streamlit.app)
 
 ---
 
-## 🛠️ Tech Stack & Analytical Methods
+## 🚀 Featured Prescriptive Analytics Project
 
-* **Languages & Frameworks:** Python, Streamlit
-* **Optimization & Modeling:** `PuLP` (Linear Programming)
-* **Data Wrangling & Visualization:** `pandas`
-* **Core Concepts:** Prescriptive Analytics, Operations Research, Linear Programming, Cost Minimization, Sensitivity Analysis.
+### 🚚 [ACCA SBL Supply Chain Optimizer](https://github.com/amcbhome/delivery-LP)
+> **Interactive Web App | Python • PuLP • Streamlit • Pandas**
+
+An end-to-end decision-support tool that solves multi-depot transportation matrices to minimize freight costs across a 9-route distribution network.
+
+* **Core Analytical Method:** Linear Programming (Branch-and-Bound Integer Optimization).
+* **Business Value:** Translates strategic management scenarios into real-time interactive parameter modeling, automatically identifying non-binding constraints and unallocated holding capacity.
+* ⚡ **[Try the Live Interactive App](https://your-streamlit-app-url.streamlit.app)** | 🛠️ **[View Repository](https://github.com/amcbhome/delivery-LP)**
 
 ---
 
-## 🚀 Quick Start (Local Setup)
+## 🧰 Technical & Analytical Stack
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/amcbhome/delivery-LP.git](https://github.com/amcbhome/delivery-LP.git)
-   cd delivery-LP
+* **Prescriptive & Data Analytics:** Operations Research, Linear Programming (`PuLP`), Cost Minimization, Sensitivity Analysis.
+* **Core Tech:** Python, Pandas, Streamlit, SQL, Apache Superset, Git/GitHub.
+* **Management Accounting Domain:** Cost Behavior & Allocation, Financial Management (FM), FMCG Supply Chain Logistics.
+
+---
+
+## 🎓 Academic & Professional Credentials
+
+* **BAcc (Hons) Accountancy** – *University of the West of Scotland (2021–2025)*
+  * **Top Academic Performance:** Grade A in **Management Accounting (MA)** & **Financial Management (FM)**.
+* **ACCA Qualification Alignment:** Exemptions granted for Fundamental papers **F1 through F9**.
+* **PDA in Bookkeeping** – Personal Development Award.
+
+---
+
+📬 **Connect with me:** [LinkedIn](https://linkedin.com/in/your-profile) | [Email](mailto:your.email@example.com)
