@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import pulp
 
-# Page configuration
+# --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="ACCA SBL Supply Chain Optimization",
     page_icon="🚚",
@@ -13,7 +13,8 @@ st.set_page_config(
 st.title("🚚 ACCA SBL Supply Chain Optimizer")
 
 st.markdown(
-    "This app solves the [ACCA optimization problem](https://www.accaglobal.com/gb/en/student/exam-support-resources/professional-exams-study-resources/strategic-business-leader.html) with AI-assisted Python code, advancing business intelligence for the AI era."
+    "This application solves a multi-depot supply chain transportation matrix using Python and Linear Programming, "
+    "advancing prescriptive analytics and decision support for modern business intelligence."
 )
 
 st.divider()
@@ -23,7 +24,7 @@ st.subheader("1. Scenario")
 
 st.markdown(
     """
-    The company needs to distribute **televisions** from three regional depots to three retail stores:
+    The distribution network requires transferring **televisions** from three regional depots to three retail stores:
 
     * **Depot Inventory:** Depot 1 has **2,500 TVs**, Depot 2 has **3,100 TVs**, and Depot 3 has **1,250 TVs** available for dispatch.
     * **Store Holding Capacity:** Store 1 can hold **2,000 TVs**, Store 2 can hold **3,000 TVs**, and Store 3 can hold **2,000 TVs**.
@@ -48,22 +49,22 @@ st.table(distances_display)
 
 st.markdown(
     """
-    > **The Business Objective:** The company wants to determine the **most cost-efficient delivery schedule** that satisfies all store receiving capacities while completely dispatching available depot inventories.
+    > **The Business Objective:** Determine the **most cost-efficient delivery schedule** that satisfies all store receiving capacities while completely dispatching available depot inventories.
     """
 )
 
 st.divider()
 
-# --- 2. SOLUTION ---
-st.subheader("2. Solution")
+# --- 2. SOLUTION METHODOLOGY ---
+st.subheader("2. Solution Methodology")
 
 st.markdown(
     """
-    To find the optimal delivery schedule, the problem is formulated and solved using **Linear Programming**, broken down into three clear parts:
+    To find the optimal delivery schedule, the problem is formulated and solved using **Linear Programming** (`PuLP`):
 
-    * **1. Decision Variables:** The actual choices the model needs to make—specifically, deciding how many TVs to ship along each of the 9 routes between the depots and stores.
-    * **2. Objective Function:** The total cost formula the model works to minimize by adding up the costs across all routes (number of TVs shipped × route distance × £5 rate).
-    * **3. Constraints:** The operational rules the solution must respect—ensuring 100% of the TVs leave the depots without overloading any store beyond its holding limit.
+    * **1. Decision Variables:** Determining the exact quantities to ship along each of the 9 routes between depots and stores.
+    * **2. Objective Function:** Minimizing total transportation cost ($\sum x_{ij} \times \text{Distance}_{ij} \times \text{Freight Rate}$).
+    * **3. Constraints:** Ensuring 100% of depot inventories are dispatched without exceeding store holding limits.
     """
 )
 
@@ -112,7 +113,7 @@ distances = {
     "Depot 3": {"Store 1": 36, "Store 2": 20, "Store 3": 25}
 }
 
-# --- OPTIMIZATION MODEL ---
+# --- OPTIMIZATION MODEL FORMULATION ---
 model = pulp.LpProblem("Supply_Chain_Optimization", pulp.LpMinimize)
 
 # Decision Variables
@@ -122,7 +123,7 @@ x = pulp.LpVariable.dicts("Route", (depots, stores), lowBound=0, cat="Integer")
 model += pulp.lpSum([x[i][j] * distances[i][j] * freight_rate for i in depots for j in stores]), "Total_Transportation_Cost"
 
 # Constraints
-# 1. Supply Constraints (Equality: All available inventory dispatched)
+# 1. Supply Constraints (Equality: Dispatch full inventory)
 for i in depots:
     model += pulp.lpSum([x[i][j] for j in stores]) == supply[i], f"Supply_Constraint_{i}"
 
@@ -133,31 +134,28 @@ for j in stores:
 # Solve Model
 status = model.solve(pulp.PULP_CBC_CMD(msg=False))
 
-# --- 3. OUTPUT ---
-st.subheader("3. Output")
+# --- 3. OUTPUT & DECISION METRICS ---
+st.subheader("3. Optimization Results")
 
 if pulp.LpStatus[status] == "Optimal":
     total_cost = pulp.value(model.objective)
     
     col1, col2, col3 = st.columns(3)
-    col1.metric("Optimization Status", "Optimal Solution Found", delta_color="normal")
+    col1.metric("Optimization Status", "Optimal Solution Found")
     col2.metric("Total Optimal Freight Cost", f"£{total_cost:,.2f}")
     col3.metric("Total TVs Dispatched", f"{sum(supply.values()):,} units")
 
-    st.markdown("#### **Optimal Dispatch Schedule & Network Summary**")
+    st.markdown("#### **Optimal Dispatch Schedule & Network Capacity Matrix**")
     
-    # 1. Build Base Schedule Dataframe
+    # Build Schedule Dataframe
     schedule_data = {j: [int(x[i][j].varValue) for i in depots] for j in stores}
     schedule_df = pd.DataFrame(schedule_data, index=depots)
     
-    # 2. Calculate Totals
+    # Calculate Totals & Slack
     schedule_df["Total Shipped"] = schedule_df.sum(axis=1)
-    
-    # 3. Add Supply Limit and Supply Slack columns
     schedule_df["Supply Limit"] = [supply[depot] for depot in depots]
     schedule_df["Supply Slack"] = schedule_df["Supply Limit"] - schedule_df["Total Shipped"]
     
-    # 4. Add Summary Rows for Store Received, Capacity Limits, and Capacity Slack
     total_received = schedule_df[stores].sum(axis=0)
     store_limits = pd.Series({j: capacity[j] for j in stores})
     store_slack = store_limits - total_received
@@ -166,40 +164,32 @@ if pulp.LpStatus[status] == "Optimal":
     schedule_df.loc["Capacity Limit"] = list(store_limits) + [sum(capacity.values()), "-", "-"]
     schedule_df.loc["Capacity Slack"] = list(store_slack) + [sum(capacity.values()) - total_received.sum(), "-", "-"]
 
-    # Styling function: Bolds delivery schedule quantities and highlights non-zero slack
+    # Styling: Highlight active routes and non-binding slack
     def style_schedule_cells(df):
         styles = pd.DataFrame('', index=df.index, columns=df.columns)
-        
-        # Bold non-zero delivery schedule values (Depots x Stores)
         for depot in depots:
             for store in stores:
                 val = df.loc[depot, store]
                 if isinstance(val, (int, float)) and val > 0:
                     styles.loc[depot, store] = 'font-weight: bold;'
-
-        # Highlight capacity slack cell if present
         for col in df.columns:
             for idx in df.index:
                 val = df.loc[idx, col]
                 if val == 150 or val == "150":
                     styles.loc[idx, col] = 'background-color: #ff4b4b; color: white; font-weight: bold;'
-
         return styles
 
-    # Apply styles to DataFrame
     styled_df = schedule_df.style.apply(style_schedule_cells, axis=None)
-
     st.dataframe(styled_df, use_container_width=True)
 
-    # Footnote note on non-binding constraint / unallocated capacity
     st.caption(
-        "**Note:** The optimization model is not fully binding, resulting in unallocated storage space for 150 TVs at Store 2."
+        "**Operational Insight:** The optimization model indicates a non-binding capacity constraint at Store 2, leaving 150 units of unallocated storage capacity."
     )
 
 else:
-    st.error("No optimal solution could be found with the current constraints.")
+    st.error("No optimal solution could be found with the current parameters.")
 
-# --- FOOTER / APP IDENTIFICATION, LICENSE & DISCLAIMER ---
+# --- FOOTER / LICENSE & DISCLAIMER ---
 st.divider()
 
 st.markdown(
@@ -209,7 +199,7 @@ st.markdown(
         <i>Advancing business intelligence for the AI era.</i><br><br>
         <span style="font-size: 0.9em; opacity: 0.85;">
             © 2026 Alastair McBride. Code released under the <b>MIT License</b>.<br>
-            <i>Disclaimer: Underlying case study scenario and parameter data adapted from ACCA examination resources for educational and demonstration purposes. ACCA does not endorse or sponsor this application.</i>
+            <i>Disclaimer: Case study scenario parameters adapted from ACCA examination resources for educational and analytics demonstration purposes. ACCA does not endorse or sponsor this application.</i>
         </span>
     </div>
     """,
