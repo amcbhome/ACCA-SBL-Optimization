@@ -15,8 +15,8 @@ st.markdown(
     """
     **Prescriptive Decision-Support Tool** | Built with Python, `PuLP` Linear Programming, and `pandas`.
     
-    This application calculates the cost-optimal distribution scheme to transport inventory from 3 supply depots to 3 retail stores, 
-    minimizing total freight overhead based on a fixed rate of **£5.00 per mile per unit**, while satisfying all store demand requirements and depot holding limits.
+    This application formulates and solves the cost-optimal distribution scheme to transport TVs from 3 supply depots to 3 retail stores, 
+    minimizing total freight cost based on a fixed rate of **£5.00 per mile per TV**, while satisfying all store demand requirements and depot capacity limits.
     """
 )
 
@@ -25,33 +25,34 @@ st.divider()
 # --- CONSTANTS & FIXED ROUTE DISTANCES (MILES) ---
 RATE_PER_MILE_PER_UNIT = 5.00
 
+# Exact distance matrix from Excel model
 distances = {
-    "Depot 1": {"Store 1": 12.0, "Store 2": 25.0, "Store 3": 18.0},
-    "Depot 2": {"Store 1": 8.0,  "Store 2": 30.0, "Store 3": 15.0},
-    "Depot 3": {"Store 1": 22.0, "Store 2": 10.0, "Store 3": 20.0}
+    "D1": {"Store 1": 22.0, "Store 2": 33.0, "Store 3": 40.0},
+    "D2": {"Store 1": 27.0, "Store 2": 30.0, "Store 3": 22.0},
+    "D3": {"Store 1": 36.0, "Store 2": 20.0, "Store 3": 25.0}
 }
 
 # --- SIDEBAR INTERACTIVE INPUTS ---
 st.sidebar.header("Model Parameters")
 
-st.sidebar.subheader("Depot Supply Limits (Units)")
-supply_d1 = st.sidebar.number_input("Depot 1 Capacity", min_value=0, value=2500, step=100)
-supply_d2 = st.sidebar.number_input("Depot 2 Capacity", min_value=0, value=3000, step=100)
-supply_d3 = st.sidebar.number_input("Depot 3 Capacity", min_value=0, value=2000, step=100)
+st.sidebar.subheader("Depot Capacities (TVs Available)")
+supply_d1 = st.sidebar.number_input("D1 Capacity", min_value=0, value=2500, step=100)
+supply_d2 = st.sidebar.number_input("D2 Capacity", min_value=0, value=3100, step=100)
+supply_d3 = st.sidebar.number_input("D3 Capacity", min_value=0, value=1250, step=100)
 
-st.sidebar.subheader("Store Demand Requirements (Units)")
-demand_s1 = st.sidebar.number_input("Store 1 Demand", min_value=0, value=1800, step=100)
-demand_s2 = st.sidebar.number_input("Store 2 Demand", min_value=0, value=2200, step=100)
-demand_s3 = st.sidebar.number_input("Store 3 Demand", min_value=0, value=2500, step=100)
+st.sidebar.subheader("Store Demands / Capacities")
+demand_s1 = st.sidebar.number_input("Store 1 Demand", min_value=0, value=2000, step=100)
+demand_s2 = st.sidebar.number_input("Store 2 Demand", min_value=0, value=3000, step=100)
+demand_s3 = st.sidebar.number_input("Store 3 Demand", min_value=0, value=2000, step=100)
 
 # --- DATA STRUCTURE PREPARATION ---
-depots = ["Depot 1", "Depot 2", "Depot 3"]
+depots = ["D1", "D2", "D3"]
 stores = ["Store 1", "Store 2", "Store 3"]
 
 supply = {
-    "Depot 1": supply_d1,
-    "Depot 2": supply_d2,
-    "Depot 3": supply_d3
+    "D1": supply_d1,
+    "D2": supply_d2,
+    "D3": supply_d3
 }
 
 demand = {
@@ -60,7 +61,7 @@ demand = {
     "Store 3": demand_s3
 }
 
-# Calculate per-unit shipping cost derived from distance (£5/mi/unit)
+# Per-unit cost derived from distance (£5/mi/TV)
 costs = {
     d: {s: distances[d][s] * RATE_PER_MILE_PER_UNIT for s in stores}
     for d in depots
@@ -72,29 +73,29 @@ total_demand = sum(demand.values())
 # --- SOLVER EXECUTION ---
 if total_supply < total_demand:
     st.error(
-        f"Infeasible Problem: Total Supply ({total_supply:,} units) is less than Total Demand ({total_demand:,} units). "
+        f"Infeasible Problem: Total Supply ({total_supply:,} TVs) is less than Total Demand ({total_demand:,} TVs). "
         "Please increase depot capacity or lower store demand in the sidebar."
     )
 else:
-    # Formulate PuLP Problem
-    prob = pulp.LpProblem("Supply_Chain_Optimization", pulp.LpMinimize)
+    # Formulate PuLP Problem (Simplex LP)
+    prob = pulp.LpProblem("TV_Supply_Chain_Optimization", pulp.LpMinimize)
 
     # Decision Variables
     routes = [(d, s) for d in depots for s in stores]
     vars = pulp.LpVariable.dicts("Route", (depots, stores), lowBound=0, cat='Integer')
 
-    # Objective Function: Minimize Total Transportation Cost
+    # Objective Function: Minimize Total Freight Overhead (£)
     prob += pulp.lpSum([vars[d][s] * costs[d][s] for (d, s) in routes]), "Total_Cost"
 
-    # Supply Constraints
+    # Supply Constraints: Shipped <= Available Capacity
     for d in depots:
         prob += pulp.lpSum([vars[d][s] for s in stores]) <= supply[d], f"Supply_{d}"
 
-    # Demand Constraints
+    # Demand Constraints: Shipped >= Store Capacity Requirement
     for s in stores:
         prob += pulp.lpSum([vars[d][s] for d in depots]) >= demand[s], f"Demand_{s}"
 
-    # Solve
+    # Solve using CBC (Simplex equivalent)
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     status = pulp.LpStatus[prob.status]
 
@@ -103,9 +104,9 @@ else:
     
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     col_m1.metric("Optimization Status", status)
-    col_m2.metric("Total Optimal Freight Cost", f"£{total_cost:,.2f}")
-    col_m3.metric("Total Supply Available", f"{total_supply:,} units")
-    col_m4.metric("Total Demand Required", f"{total_demand:,} units")
+    col_m2.metric("Total Optimal Cost", f"£{total_cost:,.2f}")
+    col_m3.metric("Total Supply Available", f"{total_supply:,} TVs")
+    col_m4.metric("Total Demand Required", f"{total_demand:,} TVs")
 
     st.divider()
 
@@ -113,16 +114,16 @@ else:
     col_left, col_right = st.columns(2)
 
     with col_left:
-        st.subheader("Optimal Shipment Plan (Units Allocated)")
+        st.subheader("Optimal Shipment Plan (TVs Allocated)")
         
         results_data = {}
         for d in depots:
             results_data[d] = [int(pulp.value(vars[d][s]) or 0) for s in stores]
         
         df_results = pd.DataFrame(results_data, index=stores).T
-        df_results["Total Shipped"] = df_results.sum(axis=1)
-        df_results["Depot Capacity"] = [supply[d] for d in depots]
-        df_results["Unused Capacity"] = df_results["Depot Capacity"] - df_results["Total Shipped"]
+        df_results["TVs Transported"] = df_results.sum(axis=1)
+        df_results["Available at Depot"] = [supply[d] for d in depots]
+        df_results["Unused Capacity"] = df_results["Available at Depot"] - df_results["TVs Transported"]
 
         st.dataframe(df_results, use_container_width=True)
 
@@ -130,8 +131,8 @@ else:
         st.subheader("Route Mileage Matrix")
         
         df_matrix = pd.DataFrame(distances).T
-        st.caption("Fixed Distances in Miles (Freight Cost = Mileage × £5.00/unit):")
-        st.dataframe(df_matrix.style.format("{:.1f} mi"), use_container_width=True)
+        st.caption("Distances in Miles (Delivery Cost = Mileage × £5.00/TV):")
+        st.dataframe(df_matrix.style.format("{:.0f} mi"), use_container_width=True)
 
     st.divider()
 
@@ -146,7 +147,7 @@ else:
             shipped = sum(pulp.value(vars[d][s]) or 0 for s in stores)
             cap = supply[d]
             pct = (shipped / cap * 100) if cap > 0 else 0
-            st.write(f"**{d}:** {int(shipped):,} / {cap:,} units ({pct:.1f}% utilized)")
+            st.write(f"**{d}:** {int(shipped):,} / {cap:,} TVs ({pct:.1f}% utilized)")
             st.progress(pct / 100)
 
     with col_s2:
@@ -156,8 +157,8 @@ else:
         avg_cost = (total_cost / total_demand) if total_demand > 0 else 0.0
         
         st.info(
-            f"• **Freight Rate:** Fixed at £5.00 per mile per unit.\n"
-            f"• **Network Slack:** {unallocated_supply:,} units of surplus capacity remain unallocated across the system.\n"
-            f"• **Active Routes:** {active_routes} out of 9 possible shipping routes utilized.\n"
-            f"• **Average Cost per Unit Shipped:** £{avg_cost:.2f}"
+            f"• **Delivery Rate:** Fixed at £5.00 per mile per TV.\n"
+            f"• **Network Surplus:** {unallocated_supply:,} TVs of surplus capacity remain unallocated.\n"
+            f"• **Active Shipping Routes:** {active_routes} out of 9 possible routes utilized.\n"
+            f"• **Average Delivery Cost per TV:** £{avg_cost:.2f}"
         )
