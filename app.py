@@ -119,17 +119,19 @@ if pulp.LpStatus[status] == "Optimal":
     schedule_df.loc["Capacity Limit"] = list(store_limits) + [sum(capacity.values()), "-", "-"]
     schedule_df.loc["Capacity Slack"] = list(store_slack) + [sum(capacity.values()) - total_received.sum(), "-", "-"]
 
-    # Function to highlight the non-zero slack cell (the 150 cell) in red
+    # Highlight function for the non-zero slack cell
     def highlight_slack(val):
         if val == 150 or val == "150":
             return "background-color: #ff4b4b; color: white; font-weight: bold;"
         return ""
 
-    # Display styled table
-    st.dataframe(
-        schedule_df.style.applymap(highlight_slack), 
-        use_container_width=True
-    )
+    # Display styled table safely across pandas versions (.map vs .applymap)
+    try:
+        styled_df = schedule_df.style.map(highlight_slack)
+    except AttributeError:
+        styled_df = schedule_df.style.applymap(highlight_slack)
+
+    st.dataframe(styled_df, use_container_width=True)
 
     st.divider()
 
@@ -138,10 +140,10 @@ if pulp.LpStatus[status] == "Optimal":
 
     st.info(
         "**Operational Buffer:** The highlighted red cell (**150 units of capacity slack at Store 2**) represents "
-        "the only non-binding point across the entire network[span_2](start_span)[span_2](end_span). Because all supply from every depot is fully utilized "
-        "and Stores 1 and 3 are filled to capacity, Store 2 acts as the system's sole operational cushion[span_3](start_span)[span_3](end_span). "
+        "the only non-binding point across the entire network. Because all supply from every depot is fully utilized "
+        "and Stores 1 and 3 are filled to capacity, Store 2 acts as the system's sole operational cushion. "
         "This unallocated space allows the business to absorb regional demand spikes or house temporary promotional stock "
-        "without needing to expand warehouse capacity[span_4](start_span)[span_4](end_span)."
+        "without needing to expand warehouse capacity."
     )
 
 else:
